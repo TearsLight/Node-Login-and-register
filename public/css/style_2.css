@@ -1,0 +1,270 @@
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a2e;
+    overflow: hidden;
+  }
+
+  .bg {
+    position: fixed;
+    inset: 0;
+    background-image: url('../bg.jpg');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.55) saturate(1.2);
+    z-index: 0;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(10,10,20,0.3) 0%, rgba(80,10,10,0.25) 100%);
+    z-index: 1;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .modal-backdrop.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .card {
+    position: relative;
+    z-index: 5;
+    background: rgba(20, 22, 35, 0.72);
+    backdrop-filter: blur(20px) saturate(1.5);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 48px 44px 44px;
+    width: 400px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    animation: cardIn 0.5s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .card h1 {
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 36px;
+    letter-spacing: 0.01em;
+  }
+
+  .field {
+    margin-bottom: 22px;
+    position: relative;
+  }
+
+  .field input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px solid rgba(255,255,255,0.35);
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 300;
+    padding: 8px 0;
+    outline: none;
+    transition: border-color 0.25s;
+  }
+  .field input::placeholder { color: rgba(255,255,255,0.45); }
+  .field input:focus { border-bottom-color: rgba(255,255,255,0.85); }
+  .field input.error { border-bottom-color: #e74c3c; }
+  .field input.success { border-bottom-color: #2ecc71; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    margin-top: 4px;
+  }
+
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.88rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .remember input[type="checkbox"] {
+    width: 15px; height: 15px;
+    accent-color: #c0392b;
+    cursor: pointer;
+  }
+
+  .forgot {
+    color: rgba(255,255,255,0.65);
+    font-size: 0.88rem;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .forgot:hover { color: #fff; }
+
+  .btn-login {
+    width: 100%;
+    padding: 14px;
+    background: #fff;
+    color: #111;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: background 0.2s, transform 0.1s, opacity 0.2s;
+    position: relative;
+  }
+  .btn-login:hover:not(:disabled) { background: #e8e8e8; }
+  .btn-login:active:not(:disabled) { transform: scale(0.98); }
+  .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .register-link {
+    text-align: center;
+    margin-top: 20px;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.88rem;
+  }
+  .register-link a {
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .register-link a:hover { color: #fff; }
+
+  /* Modal */
+  .modal-card {
+    background: rgba(20, 22, 35, 0.92);
+    backdrop-filter: blur(24px) saturate(1.5);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 48px 44px 44px;
+    width: 420px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    animation: cardIn 0.4s cubic-bezier(0.22,1,0.36,1);
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-card h1 {
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 18px; right: 22px;
+    background: none; border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .close-btn:hover { color: #fff; }
+
+  /* Error / success messages */
+  .msg {
+    font-size: 0.8rem;
+    margin-top: 4px;
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+  .msg.error { color: #e74c3c; display: block; }
+  .msg.success { color: #2ecc71; display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Global toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(30, 32, 48, 0.96);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+    backdrop-filter: blur(12px);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast.toast-success { border-color: rgba(46,204,113,0.4); }
+  .toast.toast-error   { border-color: rgba(231,76,60,0.4); }
+
+  /* Password strength bar */
+  .pwd-strength {
+    margin-top: 6px;
+    display: none;
+  }
+  .pwd-strength-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.1);
+    overflow: hidden;
+  }
+  .pwd-strength-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 2px;
+    transition: width 0.3s, background 0.3s;
+  }
+  .pwd-strength-label {
+    font-size: 0.75rem;
+    margin-top: 4px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* Password requirements tooltip */
+  .pwd-reqs {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.4);
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+  .pwd-reqs span { display: block; }
+  .pwd-reqs span.ok { color: #2ecc71; }
+  .pwd-reqs span.fail { color: rgba(255,255,255,0.35); }
