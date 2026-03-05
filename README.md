@@ -10,7 +10,6 @@
 - **Node.js**：JavaScript运行环境
 - **Redis**：高性能键值存储，用于存储用户信息和会话数据
 - **Express**：Web应用框架
-- **bcryptjs**：密码加密库
 - **cookie-parser**：Cookie解析中间件
 - **dotenv**：环境变量管理
 
@@ -31,19 +30,15 @@
 
 ## 项目结构
 ```
-e:\Learn\NodeJS\login_register\
 ├── public/                # 静态资源目录
 │   ├── assets/            # 资源文件
 │   │   ├── css/           # CSS样式
 │   │   ├── js/            # JavaScript脚本
 │   │   └── res/           # 图片等资源
-│   ├── .htaccess          # Apache配置文件
 │   ├── 404.html           # 404错误页面
 │   ├── login.html         # 登录页面
 │   └── register.html      # 注册页面
 ├── .env                   # 环境变量文件
-├── .htaccess              # Apache配置文件
-├── .user.ini              # PHP配置文件
 ├── package-lock.json      # 依赖锁定文件
 ├── package.json           # 项目配置文件
 ├── README.md              # 项目说明文档
@@ -70,7 +65,7 @@ e:\Learn\NodeJS\login_register\
    ```
 
 ## 环境配置
-在项目根目录创建`.env`文件，添加以下配（示例）：
+在项目根目录创建`.env`文件，添加以下内容到`.env`（示例）：
 
 ```env
 # Redis配置
