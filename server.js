@@ -1,243 +1,336 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const dotenv = require('dotenv');
 const redis = require('redis');
-const httpProxy = require('http-proxy');
+const cookieParser = require('cookie-parser');
+require('dotenv').config();
 
-// 创建代理服务器
-const proxy = httpProxy.createProxyServer();
+const CONFIG = {
+  PORT: 3000,
+  PUBLIC_DIR: path.join(__dirname, 'public'),
+  NOT_FOUND_PAGE: path.join(__dirname, 'public', '404.html'),
+  MIME_MAP: {
+    '.html': 'text/html',
+    '.css': 'text/css',
+    '.js': 'application/javascript',
+    '.ico': 'image/x-icon',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.json': 'application/json',
+    '.txt': 'text/plain'
+  }
+};
 
-// 加载环境变量
-dotenv.config();
-
-// 创建 Redis 客户端
+// Redis连接配置
 const redisClient = redis.createClient({
   url: `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
 });
 
-// 连接 Redis
-redisClient.connect().then(() => {
-  console.log('Redis 连接成功');
-  // 测试 Redis 连接
-  return redisClient.ping();
-}).then((response) => {
-  console.log('Redis PING 响应:', response);
-}).catch((err) => {
-  console.error('Redis 连接失败:', err);
-});
-
-// 监听 Redis 错误
 redisClient.on('error', (err) => {
-  console.error('Redis 错误:', err);
+  console.error('Redis连接错误:', err);
 });
 
-const port = 8000;
-const mimeTypes = {
-    'html': 'text/html',
-    'css': 'text/css',
-    'js': 'text/javascript',
-    'png': 'image/png',
-    'jpg': 'image/jpeg',
-}
+redisClient.connect().then(() => {
+  console.log('Redis连接成功');
+  // 初始化UID计数器
+  redisClient.get('next_uid').then((value) => {
+    if (!value) {
+      redisClient.set('next_uid', '100001');
+    }
+  });
+}).catch((err) => {
+  console.error('❌ Redis连接失败:', err);
+});
 
-const server = http.createServer((req, res) => {
-    // 检查是否是 API 请求
-    if (req.url.startsWith('/api/')) {
-      // 代理到 API 服务器
-      proxy.web(req, res, {
-        target: 'http://localhost:8001',
-        changeOrigin: true
+/**
+ * 获取文件对应的Content-Type
+ * @param {string} filePath 文件绝对路径
+ * @returns {string} Content-Type值
+ */
+const getContentType = (filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  return CONFIG.MIME_MAP[ext] || 'application/octet-stream';
+};
+
+/**
+ * 读取并返回文件内容
+ * @param {string} filePath 文件路径
+ * @param {http.ServerResponse} res 响应对象
+ */
+const serveFile = (filePath, res) => {
+
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      fs.readFile(CONFIG.NOT_FOUND_PAGE, (notFoundErr, notFoundData) => {
+        if (notFoundErr) {
+          res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('404 Not Found - 页面不存在');
+          return;
+        }
+        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(notFoundData);
       });
       return;
     }
-    
-    let request_path = req.url === '/' ? '/index.html' : req.url;
-    const file_path = path.join(__dirname, 'public', request_path);
-    const ext_name = path.extname(file_path).substring(1);
-    const contentType = mimeTypes[ext_name] || 'application/octet-stream';
 
-    fs.readFile(file_path, (err, content) => {
-    if (err) {
-      if (err.code === 'ENOENT') {
-        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf8' });
-        res.end('<h1>404 - 文件不存在</h1>');
-      } else {
-        res.writeHead(500, { 'Content-Type': 'text/html; charset=utf8' });
-        res.end(`<h1>500 - 服务器错误：${err.code}</h1>`);
-      }
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType + '; charset=utf8' });
-      res.end(content);
-    }
+    res.writeHead(200, {
+      'Content-Type': `${getContentType(filePath)}; charset=utf-8`,
+      'Cache-Control': 'public, max-age=86400'
+    });
+    res.end(data);
   });
-});
+};
 
-// 解析 JSON 格式的请求体
-function parseJSONBody(req) {
-  return new Promise((resolve, reject) => {
+const server = http.createServer((req, res) => {
+
+  // 解析cookie
+  const cookies = {};
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    cookieHeader.split(';').forEach(cookie => {
+      const parts = cookie.split('=');
+      cookies[parts[0].trim()] = parts[1].trim();
+    });
+  }
+
+  if (req.url === '/favicon.ico') {
+    const faviconPath = path.join(CONFIG.PUBLIC_DIR, 'assets/res/favicon.ico');
+    serveFile(faviconPath, res);
+    return;
+  }
+
+  // 处理注册API请求
+  if (req.url === '/api/register' && req.method === 'POST') {
     let body = '';
-    req.on('data', chunk => body += chunk.toString());
-    req.on('end', () => {
-      console.log('收到的请求体:', body);
+    req.on('data', (chunk) => {
+      body += chunk.toString();
+    });
+    req.on('end', async () => {
       try {
-        if (!body) {
-          reject(new Error('请求体为空'));
+        const data = JSON.parse(body);
+        const { email, username, password } = data;
+
+        // 验证数据
+        if (!email || !username || !password) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, message: '请填写所有必填字段' }));
           return;
         }
-        resolve(JSON.parse(body));
-      } catch (err) {
-        console.error('JSON 解析错误:', err);
-        reject(new Error('JSON 格式错误'));
-      }
-    });
-    req.on('error', err => {
-      console.error('请求错误:', err);
-      reject(err);
-    });
-  });
-}
 
-const api_server = http.createServer(async (req, res) => {
-  // 处理登录请求
-  if (req.method === 'POST' && req.url === '/api/login') {
-    try {
-      const body = await parseJSONBody(req);
-      const { email, password } = body;
-      
-      // 检查请求参数
-      if (!email || !password) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf8' });
-        res.end(JSON.stringify({ success: false, message: '邮箱和密码不能为空' }));
-        return;
-      }
-      
-      // 从 Redis 获取用户信息
-      const userKey = `user:${email}`;
-      const userData = await redisClient.get(userKey);
-      
-      if (!userData) {
-        // 如果用户不存在，创建默认用户（仅用于演示）
-        const defaultUser = {
-          email: 'admin@example.com',
-          password: '123456',
-          username: '管理员',
-          uid: '10001'
+        // 检查邮箱格式
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, message: '请输入有效的邮箱地址' }));
+          return;
+        }
+
+        // 检查密码长度
+        if (password.length < 6) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, message: '密码长度至少为6位' }));
+          return;
+        }
+
+        // 检查邮箱是否已存在
+        const existingUser = await redisClient.get(`user:email:${email}`);
+        if (existingUser) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, message: '该邮箱已被注册' }));
+          return;
+        }
+
+        // 生成唯一UID
+        const uid = await redisClient.incr('next_uid');
+
+        // 存储用户信息
+        const userData = {
+          uid: uid.toString(),
+          email: email,
+          username: username,
+          password: password, // 实际生产环境应该加密存储
+          created_at: new Date().toISOString()
         };
-        
-        if (email === defaultUser.email && password === defaultUser.password) {
-          // 存储用户信息到 Redis
-          await redisClient.set(userKey, JSON.stringify(defaultUser));
-          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf8' });
-          res.end(JSON.stringify({ success: true, message: '登录成功', data: defaultUser }));
-        } else {
-          res.writeHead(401, { 'Content-Type': 'application/json; charset=utf8' });
-          res.end(JSON.stringify({ success: false, message: '邮箱或密码错误' }));
-        }
-      } else {
-        // 验证用户密码
-        const user = JSON.parse(userData);
-        if (password === user.password) {
-          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf8' });
-          res.end(JSON.stringify({ success: true, message: '登录成功', data: user }));
-        } else {
-          res.writeHead(401, { 'Content-Type': 'application/json; charset=utf8' });
-          res.end(JSON.stringify({ success: false, message: '邮箱或密码错误' }));
-        }
+
+        // 存储用户数据
+        await redisClient.set(`user:uid:${uid}`, JSON.stringify(userData));
+        await redisClient.set(`user:email:${email}`, uid.toString());
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: true, message: '注册成功', uid: uid }));
+      } catch (error) {
+        console.error('注册错误:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, message: '注册失败，请稍后重试' }));
       }
-    } catch (err) {
-      console.error('登录错误:', err);
-      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf8' });
-      res.end(JSON.stringify({ success: false, message: '服务器内部错误' }));
-    }
-  } 
-  // 处理注册请求
-  else if (req.method === 'POST' && req.url === '/api/register') {
-    try {
-      const body = await parseJSONBody(req);
-      const { email, username, password, confirmPassword } = body;
-      
-      // 检查请求参数
-      if (!email || !username || !password || !confirmPassword) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf8' });
-        res.end(JSON.stringify({ success: false, message: '所有字段都不能为空' }));
-        return;
-      }
-      
-      // 验证邮箱格式
-      if (!/^\S+@\S+\.\S+$/.test(email)) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf8' });
-        res.end(JSON.stringify({ success: false, message: '邮箱格式不正确' }));
-        return;
-      }
-      
-      // 验证用户名长度
-      if (username.length < 2 || username.length > 20) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf8' });
-        res.end(JSON.stringify({ success: false, message: '用户名长度为 2-20 个字符' }));
-        return;
-      }
-      
-      // 验证密码是否一致
-      if (password !== confirmPassword) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf8' });
-        res.end(JSON.stringify({ success: false, message: '两次输入的密码不一致' }));
-        return;
-      }
-      
-      // 验证密码强度
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,32}$/;
-      if (!passwordRegex.test(password)) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf8' });
-        res.end(JSON.stringify({ success: false, message: '密码必须包含大小写字母和数字，长度为 8-32 个字符' }));
-        return;
-      }
-      
-      // 检查用户是否已存在
-      const userKey = `user:${email}`;
-      const existingUser = await redisClient.get(userKey);
-      if (existingUser) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf8' });
-        res.end(JSON.stringify({ success: false, message: '该邮箱已被注册' }));
-        return;
-      }
-      
-      // 生成唯一的 UID
-      const uid = '1000' + Math.floor(Math.random() * 9000).toString();
-      
-      // 创建用户信息
-      const newUser = {
-        email,
-        username,
-        password,
-        uid
-      };
-      
-      // 存储用户信息到 Redis
-      await redisClient.set(userKey, JSON.stringify(newUser));
-      
-      // 返回注册成功的响应
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf8' });
-      res.end(JSON.stringify({ success: true, message: '注册成功', data: { uid } }));
-    } catch (err) {
-      console.error('注册错误:', err);
-      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf8' });
-      res.end(JSON.stringify({ success: false, message: '服务器内部错误' }));
-    }
-  } 
-  else {
-    res.writeHead(404, { 'Content-Type': 'application/json; charset=utf8' });
-    res.end(JSON.stringify({ success: false, message: '路由不存在' }));
+    });
+    return;
   }
+
+  // 处理登录API请求
+  if (req.url === '/api/login' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk.toString();
+    });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        const { username, password, remember } = data;
+
+        // 验证数据
+        if (!username || !password) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, message: '请填写用户名和密码' }));
+          return;
+        }
+
+        // 尝试通过邮箱登录
+        let uid = await redisClient.get(`user:email:${username}`);
+        if (!uid) {
+          // 尝试通过用户名查找（如果需要）
+          // 这里简化处理，实际应该维护用户名到UID的映射
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, message: '用户不存在' }));
+          return;
+        }
+
+        // 获取用户信息
+        const userDataStr = await redisClient.get(`user:uid:${uid}`);
+        if (!userDataStr) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, message: '用户不存在' }));
+          return;
+        }
+
+        const userData = JSON.parse(userDataStr);
+
+        // 验证密码
+        if (userData.password !== password) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, message: '密码错误' }));
+          return;
+        }
+
+        // 生成session ID
+        const sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+        
+        // 存储session到Redis
+        await redisClient.set(`session:${sessionId}`, JSON.stringify({
+          uid: userData.uid,
+          email: userData.email,
+          username: userData.username,
+          created_at: new Date().toISOString()
+        }), {
+          EX: 86400 // 24小时过期
+        });
+        
+        // 登录成功，设置cookie
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Set-Cookie': `sessionId=${sessionId}; HttpOnly; Path=/; Max-Age=86400`
+        });
+        res.end(JSON.stringify({ 
+          success: true, 
+          message: '登录成功', 
+          user: {
+            uid: userData.uid,
+            email: userData.email,
+            username: userData.username
+          }
+        }));
+      } catch (error) {
+        console.error('登录错误:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, message: '登录失败，请稍后重试' }));
+      }
+    });
+    return;
+  }
+
+  // 处理检查登录状态API请求
+  if (req.url === '/api/check-login' && req.method === 'GET') {
+    const sessionId = cookies.sessionId;
+    if (!sessionId) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ success: false, message: '未登录' }));
+      return;
+    }
+
+    // 检查session是否存在
+    redisClient.get(`session:${sessionId}`).then((sessionData) => {
+      if (!sessionData) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, message: '未登录' }));
+        return;
+      }
+
+      const userData = JSON.parse(sessionData);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ 
+        success: true, 
+        message: '已登录', 
+        user: {
+          uid: userData.uid,
+          email: userData.email,
+          username: userData.username
+        }
+      }));
+    }).catch((error) => {
+      console.error('检查登录状态错误:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ success: false, message: '检查登录状态失败' }));
+    });
+    return;
+  }
+
+  let requestPath = req.url;
+  if (requestPath === '/login' || requestPath === '/index.html') {
+    requestPath = '/login.html';
+  } else if (requestPath.includes('/register=true')) {
+    // 处理注册请求，返回register.html
+    const registerPath = path.join(CONFIG.PUBLIC_DIR, 'register.html');
+    serveFile(registerPath, res);
+    return;
+  }
+
+  const resolvedPath = path.resolve(CONFIG.PUBLIC_DIR, `.${requestPath}`);
+  if (!resolvedPath.startsWith(CONFIG.PUBLIC_DIR)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('403 Forbidden - 禁止访问');
+    return;
+  }
+  serveFile(resolvedPath, res);
 });
 
-// 启动主服务器，监听所有地址
-server.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port ${port}`);
+server.listen(CONFIG.PORT, () => {
+  console.log(`服务器已启动`);
+  console.log(`静态资源目录：${CONFIG.PUBLIC_DIR}`);
 });
 
-// 启动 API 服务器，监听所有地址
-const api_port = 8001;
-api_server.listen(api_port, '0.0.0.0', () => {
-    console.log(`API Server running on port ${api_port}`);
+server.on('error', (err) => {
+  switch (err.code) {
+    case 'EADDRINUSE':
+      console.error(`端口 ${CONFIG.PORT} 已被占用！`);
+      console.error(`解决方案：1. 停止占用进程（sudo lsof -i:${CONFIG.PORT}） 2. 修改CONFIG.PORT为其他端口`);
+      break;
+    case 'EACCES':
+      console.error(`权限不足！监听${CONFIG.PORT}端口需要root权限`);
+      console.error(`解决方案：使用 sudo node server.js 启动`);
+      break;
+    default:
+      console.error(`服务器启动失败：${err.message}`);
+  }
+  process.exit(1);
+});
+
+process.on('SIGINT', () => {
+  console.log('\n正在关闭服务器...');
+  server.close(() => {
+    console.log('服务器已安全关闭');
+    process.exit(0);
+  });
 });
