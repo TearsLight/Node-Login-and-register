@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>账户管理</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        .account-container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        .account-box {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 40px 35px;
+            width: 450px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        .user-info {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .user-info h1 {
+            color: white;
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        
+        .username {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: bold;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        
+        .section h2 {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: 300;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .form-group input:focus {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-danger {
+            background: rgba(220, 53, 69, 0.6);
+            color: white;
+            border: 1px solid rgba(220, 53, 69, 0.7);
+        }
+        
+        .btn-danger:hover {
+            background: rgba(220, 53, 69, 0.7);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+        }
+        
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+            text-align: center;
+        }
+        
+        .success {
+            background-color: rgba(76, 175, 80, 0.3);
+            color: #d4edda;
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+        
+        .error {
+            background-color: rgba(220, 53, 69, 0.3);
+            color: #f8d7da;
+            border: 1px solid rgba(220, 53, 69, 0.5);
+        }
+        
+        .logout-section {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        @media (max-width: 480px) {
+            .account-box {
+                width: 90%;
+                padding: 30px 25px;
+            }
+            
+            .user-info h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background">
+        <div class="overlay"></div>
+    </div>
+    
+    <div class="account-container">
+        <div class="account-box">
+            <div class="user-info">
+                <h1>账户管理</h1>
+                <div class="username" id="currentUsername">加载中...</div>
+            </div>
+
+            <div class="section">
+                <h2>修改密码</h2>
+                <div id="passwordMessage" class="message"></div>
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label for="currentPassword">当前密码:</label>
+                        <input type="password" id="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">新密码:</label>
+                        <input type="password" id="newPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">确认新密码:</label>
+                        <input type="password" id="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">修改密码</button>
+                </form>
+            </div>
+
+            <div class="logout-section">
+                <button id="logoutBtn" class="btn btn-danger">退出登录</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cookie 工具函数
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        function eraseCookie(name) {
+            document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        }
+
+        // 页面加载时显示用户信息
+        document.addEventListener('DOMContentLoaded', () => {
+            const username = getCookie('username');
+            const token = getCookie('token');
+            
+            if (!username || token !== 'user_logged_in') {
+                // 未登录，跳转到登录页
+                alert('请先登录');
+                window.location.href = '/login';
+                return;
+            }
+            
+            // 显示当前用户名
+            document.getElementById('currentUsername').textContent = username;
+        });
+
+        // 修改密码表单提交
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // 验证新密码
+            if (newPassword !== confirmPassword) {
+                showMessage('新密码和确认密码不一致', 'error');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showMessage('新密码长度至少6位', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        currentPassword,
+                        newPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.status === 200) {
+                    showMessage('密码修改成功', 'success');
+                    // 清空表单
+                    document.getElementById('changePasswordForm').reset();
+                } else {
+                    showMessage(data.error || '密码修改失败', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showMessage('网络错误，请重试', 'error');
+            }
+        });
+
+        // 退出登录
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (confirm('确定要退出登录吗？')) {
+                // 删除所有相关 cookie
+                eraseCookie('username');
+                eraseCookie('token');
+                
+                // 跳转到首页
+                alert('已成功退出登录');
+                window.location.href = '/';
+            }
+        });
+
+        // 显示消息函数
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('passwordMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

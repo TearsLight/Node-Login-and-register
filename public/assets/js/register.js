@@ -1,3 +1,23 @@
+// 功能控制开关 - 从服务器获取状态
+let REGISTER_ENABLED = true;
+
+// 获取功能状态
+async function fetchFeatures() {
+    try {
+        const response = await fetch('/api/features');
+        const data = await response.json();
+        REGISTER_ENABLED = data.register;
+        console.log('Register feature status:', REGISTER_ENABLED);
+    } catch (error) {
+        console.error('Error fetching features:', error);
+        // 出错时默认启用功能
+        REGISTER_ENABLED = true;
+    }
+}
+
+// 页面加载时获取功能状态
+document.addEventListener('DOMContentLoaded', fetchFeatures);
+
 const registerBtn = document.getElementById('registerBtn');
 const emailInput = document.getElementById('email');
 const usernameInput = document.getElementById('username');
@@ -7,6 +27,12 @@ const socialBtns = document.querySelectorAll('.social-btn');
 
 registerBtn.addEventListener('click', async function(e) {
     e.preventDefault();
+    
+    // 检查注册功能是否启用
+    if (!REGISTER_ENABLED) {
+        alert('注册功能暂时暂停，敬请谅解！');
+        return;
+    }
     
     const email = emailInput.value.trim();
     const username = usernameInput.value.trim();
@@ -57,7 +83,7 @@ registerBtn.addEventListener('click', async function(e) {
         
         const result = await response.json();
         
-        if (result.success) {
+        if (response.status === 200) {
             registerBtn.textContent = '注册成功！';
             registerBtn.style.background = 'rgba(76, 175, 80, 0.5)';
             
@@ -65,7 +91,7 @@ registerBtn.addEventListener('click', async function(e) {
                 window.location.href = '/login';
             }, 1500);
         } else {
-            alert(result.message);
+            alert(result.error || '注册失败');
             registerBtn.textContent = '确认注册';
             registerBtn.style.opacity = '1';
         }

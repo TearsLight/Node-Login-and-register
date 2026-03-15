@@ -1,22 +1,13 @@
 {
   "name": "node-login-register",
   "version": "1.0.0",
-  "description": "",
-  "keywords": [],
-  "license": "ISC",
-  "author": "",
+  "description": "node-login-register",
+  "license": "MIT",
+  "author": "CherryLanterns",
   "type": "commonjs",
   "main": "app.js",
   "scripts": {
-    "test": "node server.js",
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "redis": "^4.6.13"
-  },
-  "devDependencies": {}
+    "test": "node app.js",
+    "start": "node app.js"
+  }
 }

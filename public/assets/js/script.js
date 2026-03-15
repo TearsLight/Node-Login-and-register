@@ -1,3 +1,23 @@
+// 功能控制开关 - 从服务器获取状态
+let LOGIN_ENABLED = true;
+
+// 获取功能状态
+async function fetchFeatures() {
+    try {
+        const response = await fetch('/api/features');
+        const data = await response.json();
+        LOGIN_ENABLED = data.login;
+        console.log('Login feature status:', LOGIN_ENABLED);
+    } catch (error) {
+        console.error('Error fetching features:', error);
+        // 出错时默认启用功能
+        LOGIN_ENABLED = true;
+    }
+}
+
+// 页面加载时获取功能状态
+document.addEventListener('DOMContentLoaded', fetchFeatures);
+
 const loginBtn = document.querySelector('.login-btn');
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
@@ -6,6 +26,12 @@ const socialBtns = document.querySelectorAll('.social-btn');
 
 loginBtn.addEventListener('click', async function(e) {
     e.preventDefault();
+    
+    // 检查登录功能是否启用
+    if (!LOGIN_ENABLED) {
+        alert('登录功能暂时暂停，敬请谅解！');
+        return;
+    }
     
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
@@ -40,19 +66,18 @@ loginBtn.addEventListener('click', async function(e) {
         
         const result = await response.json();
         
-        if (result.success) {
+        if (response.status === 200) {
             loginBtn.textContent = '登录成功！';
             loginBtn.style.background = 'rgba(76, 175, 80, 0.5)';
             
-            console.log('登录成功，用户信息：', result.user);
+            console.log('登录成功：', result);
             
-            // 这里可以添加登录成功后的处理逻辑，比如跳转到首页
+            // 登录成功后跳转到首页
             setTimeout(() => {
-                // 暂时跳转到登录页面，实际应该跳转到用户首页
-                window.location.href = '/login.html';
+                window.location.href = '/';
             }, 1500);
         } else {
-            alert(result.message);
+            alert(result.error || '登录失败');
             loginBtn.textContent = '确认登录';
             loginBtn.style.opacity = '1';
         }
@@ -67,7 +92,7 @@ const registerBtn = document.querySelector('.register-btn');
 
 registerBtn.addEventListener('click', function(e) {
     e.preventDefault();
-    window.location.href = '/register=true';
+    window.location.href = '/register';
 });
 
 passwordInput.addEventListener('keypress', function(e) {

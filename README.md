@@ -1,113 +1,195 @@
-# Node-Login-and-register
-基于Node和Redis的登录注册功能的实现
+# Cherry Lanterns 网站项目
 
-## 项目简介
-这是一个基于Node.js和Redis的用户登录注册系统，提供了完整的用户认证功能，包括注册、登录、会话管理等。
+## 项目概述
+
+这是一个基于 Node.js 的静态文件服务器项目，包含登录、注册和账户管理功能。项目采用前后端分离的架构，后端使用原生 Node.js 实现 API 服务，前端使用 HTML、CSS 和 JavaScript 实现用户界面。
+
+## 功能特性
+
+- **静态文件服务**：托管 public 目录下的静态文件
+- **用户认证**：登录、注册功能
+- **账户管理**：修改密码、退出登录
+- **功能控制**：通过配置文件控制登录和注册功能的开启/关闭
+- **响应式设计**：适配不同屏幕尺寸
+- **现代化界面**：美观的渐变背景和毛玻璃效果
+- **粒子动画**：动态背景粒子效果
+- **一言功能**：显示随机一言
 
 ## 技术栈
 
-### 后端
-- **Node.js**：JavaScript运行环境
-- **Redis**：高性能键值存储，用于存储用户信息和会话数据
-- **Express**：Web应用框架
-- **cookie-parser**：Cookie解析中间件
-- **dotenv**：环境变量管理
-
-### 前端
-- **HTML5**：页面结构
-- **CSS3**：样式设计
-- **JavaScript**：交互逻辑
-
-## 功能特性
-- ✅ 用户注册（邮箱、用户名、密码）
-- ✅ 用户登录（支持邮箱登录）
-- ✅ 会话管理（基于Redis的会话存储）
-- ✅ Cookie登录状态保持
-- ✅ 表单验证
-- ✅ 错误处理
-- ✅ 响应式设计
-- ✅ 美观的用户界面
+- **后端**：Node.js (原生 HTTP 服务器)
+- **前端**：HTML5, CSS3, JavaScript
+- **数据存储**：JSON 文件
+- **依赖**：无第三方依赖
 
 ## 项目结构
+
 ```
-├── public/                # 静态资源目录
-│   ├── assets/            # 资源文件
-│   │   ├── css/           # CSS样式
-│   │   ├── js/            # JavaScript脚本
-│   │   └── res/           # 图片等资源
-│   ├── 404.html           # 404错误页面
-│   ├── login.html         # 登录页面
-│   └── register.html      # 注册页面
-├── .env                   # 环境变量文件
-├── package-lock.json      # 依赖锁定文件
-├── package.json           # 项目配置文件
-├── README.md              # 项目说明文档
-└── server.js              # 服务器主文件
+├── app.js              # 主服务器文件
+├── config.json         # 配置文件
+├── data/
+│   └── accounts.json   # 用户数据存储
+├── public/             # 静态文件目录
+│   ├── assets/         # 静态资源
+│   │   ├── css/        # CSS 文件
+│   │   ├── js/         # JavaScript 文件
+│   │   └── res/        # 图片等资源
+│   ├── login/          # 登录页面
+│   ├── account/        # 账户管理页面
+│   ├── index.html      # 首页
+│   ├── login.html      # 登录页面
+│   └── register.html   # 注册页面
+└── README.md           # 项目说明文档
 ```
 
 ## 安装与运行
 
 ### 前提条件
-- Node.js 14.x或更高版本
-- Redis 6.0或更高版本
+
+- Node.js 14.0 或更高版本
 
 ### 安装步骤
-1. 克隆项目到本地
-2. 安装依赖
+
+1. **克隆项目**
    ```bash
-   npm install
-   ```
-3. 配置环境变量（见下方环境配置）
-4. 启动Redis服务
-5. 启动项目
-   ```bash
-   npm start
+   git clone <项目地址>
+   cd <项目目录>
    ```
 
-## 环境配置
-在项目根目录创建`.env`文件，添加以下内容到`.env`（示例）：
+2. **创建数据目录**
+   ```bash
+   mkdir -p data
+   ```
 
-```env
-# Redis配置
-REDIS_HOST=10.1.0.0
-REDIS_PORT=6379
-REDIS_PASSWORD=redis_4yYKK8
+3. **创建初始账户数据文件**
+   ```bash
+   echo '[]' > data/accounts.json
+   ```
+
+4. **启动服务器**
+   ```bash
+   node app.js
+   ```
+
+5. **访问网站**
+   - 首页：http://localhost:5000
+   - 登录页：http://localhost:5000/login
+   - 注册页：http://localhost:5000/register
+   - 账户页：http://localhost:5000/account
+
+## 配置说明
+
+### config.json
+
+```json
+{
+    "name": "Web Server",
+    "host": "0.0.0.0",
+    "port": 5000,
+    "staticDir": "public",
+    "Database": "./data/accounts.json",
+    "features": {
+        "login": true,
+        "register": true
+    }
+}
 ```
 
-## API接口
+- **name**：服务器名称
+- **host**：服务器主机地址
+- **port**：服务器端口
+- **staticDir**：静态文件目录
+- **Database**：用户数据存储文件路径
+- **features**：功能控制开关
+  - **login**：登录功能（true 启用，false 禁用）
+  - **register**：注册功能（true 启用，false 禁用）
 
-### 注册接口
-- **URL**: `/api/register`
-- **方法**: `POST`
-- **参数**:
-  - `email`: 邮箱地址
-  - `username`: 用户名
-  - `password`: 密码
-- **返回**: JSON格式的注册结果
+## API 端点
 
-### 登录接口
-- **URL**: `/api/login`
-- **方法**: `POST`
-- **参数**:
-  - `username`: 用户名或邮箱
-  - `password`: 密码
-  - `remember`: 是否记住登录状态
-- **返回**: JSON格式的登录结果和用户信息
+### 登录
+- **路径**：`/api/login`
+- **方法**：POST
+- **参数**：
+  ```json
+  {
+    "username": "用户名",
+    "password": "密码",
+    "remember": true/false
+  }
+  ```
+- **响应**：
+  - 成功：`{ "message": "Login successful" }`
+  - 失败：`{ "error": "错误信息" }`
 
-### 检查登录状态接口
-- **URL**: `/api/check-login`
-- **方法**: `GET`
-- **返回**: JSON格式的登录状态和用户信息
+### 注册
+- **路径**：`/api/register`
+- **方法**：POST
+- **参数**：
+  ```json
+  {
+    "email": "邮箱",
+    "username": "用户名",
+    "password": "密码"
+  }
+  ```
+- **响应**：
+  - 成功：`{ "message": "Registration successful" }`
+  - 失败：`{ "error": "错误信息" }`
 
-## 使用说明
-1. 访问 `http://localhost:3000/login` 进入登录页面
-2. 点击"注册账号"按钮进入注册页面
-3. 填写注册信息并提交
-4. 注册成功后自动跳转到登录页面
-5. 输入邮箱和密码登录
-6. 登录成功后会自动保存登录状态
+### 登录状态检查
+- **路径**：`/api/login-status`
+- **方法**：POST
+- **响应**：
+  - 已登录：`{ "status": "logged in", "username": "用户名" }`
+  - 未登录：`{ "status": "not logged in" }`
 
-## 注意事项
-- 本项目使用Redis作为存储，需要确保Redis服务正常运行
-- 密码目前为明文存储，实际生产环境应使用bcryptjs进行加密
-- 本项目仅作为学习和演示用途，生产环境使用时需要进一步加强安全性
+### 功能状态
+- **路径**：`/api/features`
+- **方法**：GET
+- **响应**：
+  ```json
+  {
+    "login": true/false,
+    "register": true/false
+  }
+  ```
+
+## 功能控制
+
+当服务器负载较高时，可以通过修改 `config.json` 文件中的 `features` 部分来临时禁用登录或注册功能：
+
+1. **禁用登录功能**：
+   ```json
+   "features": {
+     "login": false,
+     "register": true
+   }
+   ```
+
+2. **禁用注册功能**：
+   ```json
+   "features": {
+     "login": true,
+     "register": false
+   }
+   ```
+
+3. **同时禁用登录和注册功能**：
+   ```json
+   "features": {
+     "login": false,
+     "register": false
+   }
+   ```
+
+## 安全注意事项
+
+- 本项目使用明文存储密码，仅用于演示目的
+- 生产环境中应使用加密存储密码
+- 建议添加 CORS 配置和其他安全措施
+
+## 浏览器兼容性
+
+- 支持所有现代浏览器（Chrome, Firefox, Safari, Edge）
+- 响应式设计，适配桌面和移动设备
+

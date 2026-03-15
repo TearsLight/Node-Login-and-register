@@ -1,0 +1,281 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+  background-color: rgba(100, 80, 80, 0.5);
+  background-blend-mode: multiply;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.video-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: -1; 
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: -1;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+header {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 1rem 0;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+nav {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: #667eea;
+}
+
+.hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    color: white;
+}
+
+.hero-content h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    animation: fadeInUp 1s ease;
+}
+
+.hero-content p {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    animation: fadeInUp 1s ease 0.2s;
+    animation-fill-mode: both;
+}
+
+section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 5rem 2rem;
+}
+
+.skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.skill-card {
+    padding: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    color: white;
+    text-align: left;
+    transition: transform 0.3s;
+}
+
+.skill-card:hover {
+    transform: translateY(-10px);
+}
+
+.skill-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.contact-item {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.contact-item strong {
+    color: #667eea;
+    min-width: 80px;
+}
+
+footer {
+    background: rgba(255, 255, 255, 0.95);
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+/* 一言 */
+.hitokoto-wrapper {
+  margin: 2rem auto;
+  max-width: 800px;
+  padding: 1.8rem 2.2rem;
+  text-align: center;
+}
+
+#hitokoto_text {
+  font-family: "Noto Serif SC", Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1.8;
+  color: #333842;
+  text-decoration: none;
+  position: relative;
+  padding: 0 1.2rem;
+  transition: color 0.3s ease;
+}
+
+/* 引号装饰 */
+.hitokoto-wrapper {
+  margin: 2rem auto;
+  max-width: 800px;
+  padding: 1.8rem 2.2rem;
+  text-align: center;
+}
+
+#hitokoto_text {
+  font-family: "Noto Serif SC", Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1.8;
+  color: #333842;
+  text-decoration: none;
+  position: relative;
+  padding: 0 1.2rem;
+  transition: color 0.3s ease;
+}
+
+/* 引号装饰 */
+#hitokoto_text::before,
+#hitokoto_text::after {
+  color: #b0b7c3;
+  font-size: 2.5rem;
+  opacity: 0.6;
+  font-family: Georgia, serif;
+}
+
+#hitokoto_text::before {
+  content: "“";
+  position: absolute;
+  left: -0.8rem;
+  top: -1.2rem;
+}
+
+#hitokoto_text::after {
+  content: "”";
+  position: absolute;
+  right: -0.8rem;
+  bottom: -1.2rem;
+}
+#hitokoto_text {
+  cursor: pointer;
+}
+#hitokoto_text:hover {
+  color: #2c6ecb;
+}
+
+#hitokoto_source {
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-family: "Noto Sans SC", sans-serif;
+  letter-spacing: 0.03em;
+}
+
+#author {
+  font-style: italic;
+}
+
+#from {
+  margin-left: 0.5rem;
+  opacity: 0.85;
+}
+
+#hitokoto_text:contains(":D 获取中...") {
+  font-style: italic;
+  color: #8a94a6;
+}
+
+#hitokoto_source:empty {
+  display: none;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-content h1 {
+        font-size: 2.5rem;
+    }
+    
+    .hero-content p {
+        font-size: 1.2rem;
+    }
+
+    .nav-links {
+        gap: 1rem;
+    }
+}

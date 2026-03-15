@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login</h1>
+    <form id="loginForm">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br>
+
+        <label for="remember">
+            <input type="checkbox" id="remember" name="remember">
+            Remember me
+        </label><br>
+
+        <input type="submit" value="Login">
+    </form>
+    <p>Don't have an account? <a href="/register">Register here</a></p>
+    <script>
+        // 页面加载时检查是否有记住的登录信息
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedUsername = getCookie('username');
+            const savedToken = getCookie('token');
+            
+            if (savedUsername && savedToken) {
+                document.getElementById('username').value = savedUsername;
+                document.getElementById('remember').checked = true;
+                
+                // 自动检查登录状态
+                checkLoginStatus();
+            }
+        });
+
+        const loginForm = document.getElementById('loginForm');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('remember').checked;   
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        remember
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.status === 200) {
+                    // 登录成功，处理 cookie
+                    if (remember) {
+                        // 设置长期 cookie（7天）
+                        setCookie('username', username, 7);
+                        setCookie('token', 'user_logged_in', 7);
+                    } else {
+                        // 设置会话 cookie（浏览器关闭时失效）
+                        setCookie('username', username);
+                        setCookie('token', 'user_logged_in');
+                    }
+                    
+                    alert(data.message);
+                    window.location.href = '/';
+                } else {
+                    alert(data.error || 'Login failed');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network error, please try again');
+            }
+        });
+
+        // Cookie 工具函数
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        function eraseCookie(name) {
+            document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        }
+
+        // 检查登录状态
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/login-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({}),
+                    credentials: 'include' // 包含 cookie
+                });
+                
+                if (response.status === 200) {
+                    // 已登录，自动跳转
+                    window.location.href = '/';
+                }
+            } catch (err) {
+                console.log('Not logged in or status check failed');
+            }
+        }
+    </script>
+</body>
+</html>

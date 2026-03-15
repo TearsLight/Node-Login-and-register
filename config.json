@@ -1,0 +1,12 @@
+{
+    "name": "Web Server",
+    "host": "0.0.0.0",
+    "port": 5000,
+    "staticDir": "public",
+    "Database": "./data/accounts.json",
+    "features": {
+        
+        "login": true,
+        "register": true
+    }
+}
