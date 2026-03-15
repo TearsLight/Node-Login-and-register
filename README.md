@@ -1,4 +1,4 @@
-# Cherry Lanterns 网站项目
+# Node-login-and-register 项目
 
 ## 项目概述
 
