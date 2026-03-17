@@ -4,6 +4,7 @@ const path = require('path');
 
 const config = require('./config.json');
 const { createClient } = require('redis');
+const bcrypt = require('bcrypt');
 
 const MIME_TYPE = {
         '.html': 'text/html',
@@ -57,14 +58,36 @@ const writeToDatabase = async (data) => {
     try {
         // 从 Redis 获取现有账户
         const accountsJson = await redisClient.get('accounts');
-        const accounts = JSON.parse(accountsJson);
+        let accounts = [];
+        
+        // 检查 accountsJson 是否存在且有效
+        if (accountsJson) {
+            try {
+                accounts = JSON.parse(accountsJson);
+                // 确保 accounts 是数组
+                if (!Array.isArray(accounts)) {
+                    accounts = [];
+                }
+            } catch (parseError) {
+                console.error('Error parsing accounts JSON:', parseError);
+                accounts = [];
+            }
+        }
+        
+        // 解析新账户数据
+        const newAccount = JSON.parse(data);
+        
+        // 对密码进行加密
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(newAccount.password, saltRounds);
+        newAccount.password = hashedPassword;
         
         // 添加新账户
-        accounts.push(JSON.parse(data));
+        accounts.push(newAccount);
         
         // 写回 Redis
         await redisClient.set('accounts', JSON.stringify(accounts, null, 2));
-        console.log('Account added to Redis');
+        console.log('Account added to Redis with hashed password');
     } catch (err) {
         console.error('Write to database error:', err);
         throw err;
@@ -134,7 +157,9 @@ const server = http.createServer(async (req, res) => {
                 
                 const account = accounts.find((account) => account.username === data.username);
                 if (account) {
-                    if (account.password === data.password) {
+                    // 使用 bcrypt 验证密码
+                    const passwordMatch = await bcrypt.compare(data.password, account.password);
+                    if (passwordMatch) {
                         //set cookie before sending response
                         let tokenCookie = 'token=user_logged_in; Path=/';
                         let usernameCookie = `username=${account.username}; Path=/`;

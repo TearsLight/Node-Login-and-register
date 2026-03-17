@@ -11,6 +11,7 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "redis": "^5.11.0"
   }
 }
