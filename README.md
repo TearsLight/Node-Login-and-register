@@ -14,27 +14,29 @@
 - **现代化界面**：美观的渐变背景和毛玻璃效果
 - **粒子动画**：动态背景粒子效果
 - **一言功能**：显示随机一言
+- **Redis 数据库**：使用 Redis 存储用户数据
+- **密码加密**：使用 bcrypt 对密码进行安全加密存储
 
 ## 技术栈
 
 - **后端**：Node.js (原生 HTTP 服务器)
 - **前端**：HTML5, CSS3, JavaScript
-- **数据存储**：JSON 文件
-- **依赖**：无第三方依赖
+- **数据存储**：Redis
+- **密码加密**：bcrypt
+- **依赖**：redis, bcrypt
 
 ## 项目结构
 
 ```
 ├── app.js              # 主服务器文件
 ├── config.json         # 配置文件
-├── data/
-│   └── accounts.json   # 用户数据存储
+├── package.json        # 项目依赖
+├── package-lock.json   # 依赖锁定文件
 ├── public/             # 静态文件目录
 │   ├── assets/         # 静态资源
 │   │   ├── css/        # CSS 文件
 │   │   ├── js/         # JavaScript 文件
 │   │   └── res/        # 图片等资源
-│   ├── login/          # 登录页面
 │   ├── account/        # 账户管理页面
 │   ├── index.html      # 首页
 │   ├── login.html      # 登录页面
@@ -47,6 +49,7 @@
 ### 前提条件
 
 - Node.js 14.0 或更高版本
+- Redis 服务器（默认端口：6379）
 
 ### 安装步骤
 
@@ -56,15 +59,14 @@
    cd <项目目录>
    ```
 
-2. **创建数据目录**
+2. **安装依赖**
    ```bash
-   mkdir -p data
+   npm install
    ```
 
-3. **创建初始账户数据文件**
-   ```bash
-   echo '[]' > data/accounts.json
-   ```
+3. **配置 Redis**
+   - 确保 Redis 服务器已启动
+   - 修改 `config.json` 文件中的 Redis 配置（如果需要）
 
 4. **启动服务器**
    ```bash
@@ -88,6 +90,13 @@
     "port": 5000,
     "staticDir": "public",
     "Database": "./data/accounts.json",
+    "redis": {
+        "address": "localhost",
+        "port": 6379,
+        "username": "",
+        "password": "",
+        "connectName": "web-server"
+    },
     "features": {
         "login": true,
         "register": true
@@ -99,7 +108,13 @@
 - **host**：服务器主机地址
 - **port**：服务器端口
 - **staticDir**：静态文件目录
-- **Database**：用户数据存储文件路径
+- **Database**：用户数据存储文件路径（已弃用，现在使用 Redis）
+- **redis**：Redis 数据库配置
+  - **address**：Redis 服务器地址（默认：localhost）
+  - **port**：Redis 服务器端口（默认：6379）
+  - **username**：Redis 用户名（默认：空）
+  - **password**：Redis 密码（默认：空）
+  - **connectName**：连接名称（默认：web-server）
 - **features**：功能控制开关
   - **login**：登录功能（true 启用，false 禁用）
   - **register**：注册功能（true 启用，false 禁用）
@@ -184,12 +199,25 @@
 
 ## 安全注意事项
 
-- 本项目使用明文存储密码，仅用于演示目的
-- 生产环境中应使用加密存储密码
-- 建议添加 CORS 配置和其他安全措施
+- **密码加密**：使用 bcrypt 对密码进行加密存储，提高安全性
+- **Redis 安全**：确保 Redis 服务器配置了适当的访问控制
+- **HTTPS**：建议在生产环境中使用 HTTPS 加密传输
+- **速率限制**：建议添加登录和注册接口的速率限制，防止暴力破解
+- **CSRF 保护**：建议实现 CSRF 令牌，防止跨站请求伪造攻击
 
 ## 浏览器兼容性
 
 - 支持所有现代浏览器（Chrome, Firefox, Safari, Edge）
 - 响应式设计，适配桌面和移动设备
 
+## 许可证
+
+MIT License
+
+## 作者
+
+Cherry Lanterns
+
+---
+
+**注意**：本项目已实现密码加密存储和 Redis 数据库集成，提高了系统的安全性和性能。
