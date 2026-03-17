@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 const config = require('./config.json');
+const { createClient } = require('redis');
+
 const MIME_TYPE = {
         '.html': 'text/html',
         '.css': 'text/css',
@@ -15,25 +17,57 @@ const MIME_TYPE = {
         '.ico': 'image/x-icon',
         '.txt': 'text/plain',
 }
-const databaseCheck = () => {
+
+// 创建 Redis 客户端
+const redisClient = createClient({
+    url: 'redis://localhost:6379'
+});
+
+// 连接 Redis
+redisClient.connect().then(() => {
+    console.log('Redis connected successfully');
+}).catch(err => {
+    console.error('Redis connection error:', err);
+});
+
+const databaseCheck = async () => {
     try {
-        fs.accessSync(config.Database);
-        console.log('Database file exists');
-    } catch (err) {
-        if (err.code === 'ENOENT') {
-            fs.writeFileSync(config.Database, '[]');
-            console.log('Database file created');
-        } else {
-            throw err;
+        // 检查 Redis 连接
+        await redisClient.ping();
+        console.log('Redis database connected');
+        
+        // 检查 accounts 键是否存在
+        const exists = await redisClient.exists('accounts');
+        if (!exists) {
+            // 初始化 accounts 列表
+            await redisClient.set('accounts', JSON.stringify([]));
+            console.log('Redis database initialized');
         }
+    } catch (err) {
+        console.error('Database check error:', err);
+        throw err;
     }
 }
-const writeToDatabase = (data) => {
-    const accounts = JSON.parse(fs.readFileSync(config.Database));
-    accounts.push(JSON.parse(data));
-    fs.writeFileSync(config.Database, JSON.stringify(accounts, null, 2));
+
+const writeToDatabase = async (data) => {
+    try {
+        // 从 Redis 获取现有账户
+        const accountsJson = await redisClient.get('accounts');
+        const accounts = JSON.parse(accountsJson);
+        
+        // 添加新账户
+        accounts.push(JSON.parse(data));
+        
+        // 写回 Redis
+        await redisClient.set('accounts', JSON.stringify(accounts, null, 2));
+        console.log('Account added to Redis');
+    } catch (err) {
+        console.error('Write to database error:', err);
+        throw err;
+    }
 }
-const server = http.createServer((req, res) => {
+
+const server = http.createServer(async (req, res) => {
     let filePath = path.join(__dirname, config.staticDir, req.url);
 
     if (req.url === '/') {
@@ -58,11 +92,11 @@ const server = http.createServer((req, res) => {
         req.on('data', chunk => {
             body += chunk.toString();
         });
-        req.on('end', () => {
+        req.on('end', async () => {
             try {
                 const data = JSON.parse(body);
                 console.log(data);
-                writeToDatabase(body);
+                await writeToDatabase(body);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ message: 'Registration successful' }));
             } catch (err) {
@@ -85,11 +119,15 @@ const server = http.createServer((req, res) => {
         req.on('data', chunk => {
             body += chunk.toString();
         });
-        req.on('end', () => {
+        req.on('end', async () => {
             try {
                 const data = JSON.parse(body);
                 console.log(data);  
-                const accounts = JSON.parse(fs.readFileSync(config.Database));
+                
+                // 从 Redis 获取账户数据
+                const accountsJson = await redisClient.get('accounts');
+                const accounts = JSON.parse(accountsJson);
+                
                 const account = accounts.find((account) => account.username === data.username);
                 if (account) {
                     if (account.password === data.password) {
@@ -135,112 +173,70 @@ const server = http.createServer((req, res) => {
             const cookies = {};
             if (cookieHeader) {
                 cookieHeader.split(';').forEach(cookie => {
-                    const [name, value] = cookie.trim().split('=');
-                    cookies[name] = value;
+                    const parts = cookie.split('=');
+                    cookies[parts[0].trim()] = parts[1];
                 });
             }
             return cookies;
         };
         
         const cookies = parseCookies(req.headers.cookie);
-        console.log('Cookies:', cookies);
+        const token = cookies.token;
+        const username = cookies.username;
         
-        //检查cookie是否存在token
-        if (cookies.token) {
+        if (token && username) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Login status check successful' }));
+            res.end(JSON.stringify({ status: 'logged in', username: username }));
         } else {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'No token found' }));
-        }   
-        return;
-    }
-    //修改密码
-    else if (req.url === '/api/change-password' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => {
-            body += chunk.toString();
-        });
-        req.on('end', () => {
-            try {
-                const data = JSON.parse(body);
-                console.log('修改密码请求:', data);
-                
-                // 解析cookie获取当前用户名
-                const parseCookies = (cookieHeader) => {
-                    const cookies = {};
-                    if (cookieHeader) {
-                        cookieHeader.split(';').forEach(cookie => {
-                            const [name, value] = cookie.trim().split('=');
-                            cookies[name] = value;
-                        });
-                    }
-                    return cookies;
-                };
-                
-                const cookies = parseCookies(req.headers.cookie);
-                const username = cookies.username;
-                
-                if (!username) {
-                    res.writeHead(401, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: '未登录' }));
-                    return;
-                }
-                
-                // 读取数据库
-                const accounts = JSON.parse(fs.readFileSync(config.Database));
-                const accountIndex = accounts.findIndex(acc => acc.username === username);
-                
-                if (accountIndex === -1) {
-                    res.writeHead(404, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: '用户不存在' }));
-                    return;
-                }
-                
-                // 验证当前密码
-                if (accounts[accountIndex].password !== data.currentPassword) {
-                    res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: '当前密码错误' }));
-                    return;
-                }
-                
-                // 更新密码
-                accounts[accountIndex].password = data.newPassword;
-                fs.writeFileSync(config.Database, JSON.stringify(accounts, null, 2));
-                
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: '密码修改成功' }));
-                
-            } catch (err) {
-                console.error('修改密码错误:', err);
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: '修改密码失败' }));
-            }
-        });
-        return;
-    }
-    const extname = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPE[extname] || 'application/octet-stream';
-
-    fs.readFile(filePath, (err, content) => {
-        if (err) {
-            if (err.code === 'ENOENT') {
-                res.writeHead(404, { 'Content-Type': 'text/html' });
-                res.end('<h1>404 Not Found</h1>', 'utf-8');
-            } else {
-                res.writeHead(500);
-                res.end(`Server Error: ${err.code}`, 'utf-8');
-            }
-        } else {
-            res.writeHead(200, { 'Content-Type': contentType });
-            res.end(content, 'utf-8');
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'not logged in' }));
         }
+        return;
+    }
+    // 检查文件是否存在
+    fs.access(filePath, fs.constants.F_OK, (err) => {
+        if (err) {
+            // 文件不存在，返回404
+            res.writeHead(404, { 'Content-Type': 'text/html' });
+            res.end('<h1>404 Not Found</h1>');
+            return;
+        }
+        
+        // 检查是否是目录
+        fs.stat(filePath, (err, stats) => {
+            if (err) {
+                res.writeHead(500, { 'Content-Type': 'text/html' });
+                res.end('<h1>500 Internal Server Error</h1>');
+                return;
+            }
+            
+            if (stats.isDirectory()) {
+                // 如果是目录，默认返回index.html
+                filePath = path.join(filePath, 'index.html');
+            }
+            
+            // 读取文件
+            fs.readFile(filePath, (err, data) => {
+                if (err) {
+                    res.writeHead(500, { 'Content-Type': 'text/html' });
+                    res.end('<h1>500 Internal Server Error</h1>');
+                    return;
+                }
+                
+                // 根据文件扩展名设置Content-Type
+                const ext = path.extname(filePath);
+                const contentType = MIME_TYPE[ext] || 'application/octet-stream';
+                
+                res.writeHead(200, { 'Content-Type': contentType });
+                res.end(data);
+            });
+        });
     });
 });
- 
-server.listen(config.port, config.host, () => {
-    databaseCheck();
+
+// 启动服务器
+server.listen(config.port, config.host, async () => {
     console.log(`Server running at http://${config.host}:${config.port}/`);
+    // 检查数据库
+    await databaseCheck();
 });
-
-
