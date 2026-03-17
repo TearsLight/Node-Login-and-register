@@ -20,7 +20,11 @@ const MIME_TYPE = {
 
 // 创建 Redis 客户端
 const redisClient = createClient({
-    url: 'redis://localhost:6379'
+    url: `redis://${config.redis.username ? config.redis.username + (config.redis.password ? `:${config.redis.password}` : '') + '@' : ''}${config.redis.address}:${config.redis.port}`,
+    socket: {
+        connectTimeout: 10000
+    },
+    name: config.redis.connectName
 });
 
 // 连接 Redis
